@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok Video Variant Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: white;
+        }
+
+        .container {
+            background: #111;
+            border-radius: 30px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2em;
+            background: linear-gradient(45deg, #ff0050, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .upload-area {
+            border: 3px dashed #333;
+            border-radius: 20px;
+            padding: 60px 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            background: #0a0a0a;
+        }
+
+        .upload-area:hover {
+            border-color: #ff0050;
+            background: #151515;
+        }
+
+        .upload-area.active {
+            border-color: #00ff88;
+        }
+
+        .upload-area.has-video {
+            padding: 20px;
+            cursor: default;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 1.2em;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+
+        .upload-subtext {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .video-preview {
+            display: none;
+            margin-bottom: 30px;
+        }
+
+        .video-preview.active {
+            display: block;
+        }
+
+        .video-container {
+            position: relative;
+            border-radius: 15px;
+            overflow: hidden;
+            background: #000;
+            margin-bottom: 20px;
+        }
+
+        video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .video-label {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            z-index: 10;
+        }
+
+        .variant-label {
+            background: linear-gradient(45deg, #ff0050, #00ff88);
+        }
+
+        .actions {
+            display: none;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .actions.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .btn {
+            padding: 18px;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.1em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-generate {
+            background: linear-gradient(45deg, #ff0050, #ff3366);
+            color: white;
+        }
+
+        .btn-generate:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 0, 80, 0.4);
+        }
+
+        .btn-save {
+            background: linear-gradient(45deg, #00ff88, #00cc6a);
+            color: black;
+        }
+
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.4);
+        }
+
+        .btn-reset {
+            background: #222;
+            color: #888;
+            font-size: 0.95em;
+            padding: 12px;
+        }
+
+        .btn-reset:hover {
+            background: #333;
+            color: #fff;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #222;
+            border-radius: 50%;
+            border-top-color: #ff0050;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: #888;
+            font-size: 0.95em;
+        }
+
+        .status-message {
+            display: none;
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 0.9em;
+        }
+
+        .status-message.active {
+            display: block;
+        }
+
+        .status-message.success {
+            background: rgba(0, 255, 136, 0.1);
+            color: #00ff88;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .status-message.info {
+            background: rgba(255, 0, 80, 0.1);
+            color: #ff3366;
+            border: 1px solid rgba(255, 0, 80, 0.3);
+        }
+
+        .variant-info {
+            display: none;
+            background: #0a0a0a;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #222;
+        }
+
+        .variant-info.active {
+            display: block;
+        }
+
+        .variant-info h3 {
+            color: #00ff88;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .variant-info p {
+            color: #666;
+            font-size: 0.85em;
+            line-height: 1.5;
+        }
+
+        .patterns-used {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .pattern-tag {
+            background: #222;
+            color: #888;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 25px;
+            }
+            
+            h1 {
+                font-size: 1.6em;
+            }
+            
+            .upload-area {
+                padding: 40px 20px;
+            }
+            
+            .btn {
+                font-size: 1em;
+                padding: 16px;
+            }
+        }
+
+        .processing-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            backdrop-filter: blur(10px);
+        }
+
+        .processing-overlay.active {
+            display: flex;
+        }
+
+        .processing-content {
+            text-align: center;
+        }
+
+        .processing-text {
+            font-size: 1.3em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ff0050, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .processing-status {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .progress-bar {
+            width: 250px;
+            height: 4px;
+            background: #222;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 20px auto 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff0050, #00ff88);
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .save-instructions {
+            display: none;
+            background: #0a0a0a;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            border: 1px solid #222;
+        }
+
+        .save-instructions.active {
+            display: block;
+        }
+
+        .save-instructions p {
+            color: #666;
+            font-size: 0.85em;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TikTok Variant Generator</h1>
+        <p class="subtitle">Auto-generates unique overlays at 33% opacity</p>
+
+        <div class="upload-area" id="uploadArea">
+            <input type="file" id="videoInput" accept="video/*">
+            <label for="videoInput" id="uploadLabel">
+                <div class="upload-icon">📹</div>
+                <div class="upload-text">Upload Video</div>
+                <div class="upload-subtext">Drag & drop or click to browse</div>
+            </label>
+        </div>
+
+        <div class="video-preview" id="videoPreview">
+            <div class="variant-info" id="variantInfo">
+                <h3>Current Variant</h3>
+                <p>Each variant uses random patterns at 33% opacity to bypass duplicate detection</p>
+                <div class="patterns-used" id="patternsUsed"></div>
+            </div>
+            
+            <div class="video-container">
+                <div class="video-label" id="videoLabel">Original</div>
+                <video id="displayVideo" controls playsinline></video>
+            </div>
+        </div>
+
+        <div class="loading" id="loadingFFmpeg">
+            <div class="spinner"></div>
+            <div class="loading-text">Loading video processor...</div>
+        </div>
+
+        <div class="actions" id="actions">
+            <button class="btn btn-generate" id="generateBtn">
+                🎲 Generate Variant
+            </button>
+            
+            <button class="btn btn-save" id="saveBtn" style="display: none;">
+                📱 Save to Camera Roll
+            </button>
+            
+            <div class="save-instructions" id="saveInstructions">
+                <p id="saveInstructionsText"></p>
+            </div>
+            
+            <button class="btn btn-reset" id="resetBtn">
+                Upload New Video
+            </button>
+        </div>
+
+        <div class="status-message" id="statusMessage"></div>
+    </div>
+
+    <div class="processing-overlay" id="processingOverlay">
+        <div class="processing-content">
+            <div class="spinner"></div>
+            <div class="processing-text">Generating Variant</div>
+            <div class="processing-status" id="processingStatus">Applying random overlay patterns...</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
+    <script>
+        const { FFmpeg } = FFmpegWASM;
+        const { fetchFile } = FFmpegUtil;
+        
+        let ffmpeg = null;
+        let videoFile = null;
+        let currentVariantBlob = null;
+        let isProcessing = false;
+        let variantCount = 0;
+        let currentPatterns = [];
+
+        const patternTypes = ['noise', 'scanlines', 'grid', 'dots', 'diagonal', 'film', 'subtle-scan', 'vignette'];
+        
+        const elements = {
+            videoInput: document.getElementById('videoInput'),
+            uploadArea: document.getElementById('uploadArea'),
+            uploadLabel: document.getElementById('uploadLabel'),
+            videoPreview: document.getElementById('videoPreview'),
+            displayVideo: document.getElementById('displayVideo'),
+            videoLabel: document.getElementById('videoLabel'),
+            actions: document.getElementById('actions'),
+            generateBtn: document.getElementById('generateBtn'),
+            saveBtn: document.getElementById('saveBtn'),
+            resetBtn: document.getElementById('resetBtn'),
+            processingOverlay: document.getElementById('processingOverlay'),
+            processingStatus: document.getElementById('processingStatus'),
+            progressFill: document.getElementById('progressFill'),
+            statusMessage: document.getElementById('statusMessage'),
+            loadingFFmpeg: document.getElementById('loadingFFmpeg'),
+            variantInfo: document.getElementById('variantInfo'),
+            patternsUsed: document.getElementById('patternsUsed'),
+            saveInstructions: document.getElementById('saveInstructions'),
+            saveInstructionsText: document.getElementById('saveInstructionsText')
+        };
+
+        // Initialize FFmpeg
+        async function loadFFmpeg() {
+            try {
+                elements.loadingFFmpeg.classList.add('active');
+                ffmpeg = new FFmpeg();
+                
+                ffmpeg.on('progress', ({ progress }) => {
+                    const percent = Math.round(progress * 100);
+                    elements.progressFill.style.width = `${percent}%`;
+                });
+
+                await ffmpeg.load({
+                    coreURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
+                    wasmURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm'
+                });
+                
+                elements.loadingFFmpeg.classList.remove('active');
+            } catch (error) {
+                console.error('Failed to load FFmpeg:', error);
+                elements.loadingFFmpeg.innerHTML = '<div style="color: #ff0050;">Failed to load processor. Please refresh.</div>';
+            }
+        }
+
+        loadFFmpeg();
+
+        // Pattern generation functions
+        function generatePattern(canvas, ctx, type) {
+            const width = canvas.width;
+            const height = canvas.height;
+
+            switch(type) {
+                case 'noise':
+                    const imageData = ctx.createImageData(width, height);
+                    const data = imageData.data;
+                    for (let i = 0; i < data.length; i += 4) {
+                        const noise = Math.random() * 255;
+                        data[i] = noise;
+                        data[i + 1] = noise;
+                        data[i + 2] = noise;
+                        data[i + 3] = 255;
+                    }
+                    ctx.putImageData(imageData, 0, 0);
+                    break;
+
+                case 'scanlines':
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                    for (let y = 0; y < height; y += 4) {
+                        ctx.fillRect(0, y, width, 2);
+                    }
+                    break;
+
+                case 'grid':
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                    ctx.lineWidth = 1;
+                    const gridSize = 20 + Math.random() * 20;
+                    for (let x = 0; x < width; x += gridSize) {
+                        ctx.beginPath();
+                        ctx.moveTo(x, 0);
+                        ctx.lineTo(x, height);
+                        ctx.stroke();
+                    }
+                    for (let y = 0; y < height; y += gridSize) {
+                        ctx.beginPath();
+                        ctx.moveTo(0, y);
+                        ctx.lineTo(width, y);
+                        ctx.stroke();
+                    }
+                    break;
+
+                case 'dots':
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                    const dotSpacing = 25 + Math.random() * 10;
+                    for (let x = dotSpacing; x < width; x += dotSpacing) {
+                        for (let y = dotSpacing; y < height; y += dotSpacing) {
+                            ctx.beginPath();
+                            ctx.arc(x, y, 2 + Math.random() * 2, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                    break;
+
+                case 'diagonal':
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                    ctx.lineWidth = 1;
+                    const spacing = 30 + Math.random() * 20;
+                    for (let i = -height; i < width; i += spacing) {
+                        ctx.beginPath();
+                        ctx.moveTo(i, 0);
+                        ctx.lineTo(i + height, height);
+                        ctx.stroke();
+                    }
+                    break;
+
+                case 'film':
+                    for (let i = 0; i < 2000; i++) {
+                        const x = Math.random() * width;
+                        const y = Math.random() * height;
+                        const size = Math.random() * 3;
+                        ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.6})`;
+                        ctx.fillRect(x, y, size, size);
+                    }
+                    break;
+
+                case 'subtle-scan':
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                    ctx.lineWidth = 1;
+                    for (let y = 0; y < height; y += 6 + Math.random() * 4) {
+                        ctx.globalAlpha = Math.random() * 0.3;
+                        ctx.beginPath();
+                        ctx.moveTo(0, y);
+                        ctx.lineTo(width, y);
+                        ctx.stroke();
+                    }
+                    ctx.globalAlpha = 1;
+                    break;
+
+                case 'vignette':
+                    const gradient = ctx.createRadialGradient(
+                        width / 2, height / 2, Math.min(width, height) * 0.2,
+                        width / 2, height / 2, Math.max(width, height) * 0.8
+                    );
+                    gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+                    gradient.addColorStop(1, 'rgba(0, 0, 0, 0.7)');
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, width, height);
+                    break;
+            }
+        }
+
+        // Create random overlay combination
+        function createRandomOverlay(width, height) {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+
+            // Randomly choose 1-2 patterns
+            const numPatterns = Math.random() > 0.5 ? 2 : 1;
+            const selectedPatterns = [];
+            
+            for (let i = 0; i < numPatterns; i++) {
+                const pattern = patternTypes[Math.floor(Math.random() * patternTypes.length)];
+                if (!selectedPatterns.includes(pattern)) {
+                    selectedPatterns.push(pattern);
+                    generatePattern(canvas, ctx, pattern);
+                }
+            }
+
+            currentPatterns = selectedPatterns;
+            return canvas;
+        }
+
+        // Handle file upload
+        elements.videoInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('video/')) {
+                videoFile = file;
+                variantCount = 0;
+                currentVariantBlob = null;
+                
+                const url = URL.createObjectURL(file);
+                elements.displayVideo.src = url;
+                
+                elements.uploadArea.classList.add('has-video');
+                elements.uploadLabel.innerHTML = `
+                    <div style="color: #00ff88;">✓ Video Loaded</div>
+                    <div style="font-size: 0.9em; color: #666; margin-top: 5px;">${file.name}</div>
+                `;
+                
+                elements.videoPreview.classList.add('active');
+                elements.actions.classList.add('active');
+                elements.videoLabel.textContent = 'Original';
+                elements.variantInfo.classList.remove('active');
+                elements.saveBtn.style.display = 'none';
+                
+                showStatus('Ready to generate variants', 'info');
+            }
+        });
+
+        // Generate variant
+        elements.generateBtn.addEventListener('click', async () => {
+            if (!videoFile || !ffmpeg || isProcessing) return;
+            
+            isProcessing = true;
+            elements.generateBtn.disabled = true;
+            elements.processingOverlay.classList.add('active');
+            elements.statusMessage.classList.remove('active');
+            
+            try {
+                // Write video to FFmpeg
+                elements.processingStatus.textContent = 'Loading video...';
+                await ffmpeg.writeFile('input.mp4', await fetchFile(videoFile));
+                
+                // Create random overlay
+                elements.processingStatus.textContent = 'Creating unique overlay...';
+                const video = elements.displayVideo;
+                const overlayCanvas = createRandomOverlay(video.videoWidth, video.videoHeight);
+                
+                const overlayBlob = await new Promise(resolve => {
+                    overlayCanvas.toBlob(resolve, 'image/png');
+                });
+                
+                await ffmpeg.writeFile('overlay.png', await fetchFile(overlayBlob));
+                
+                // Process with fixed 33% opacity
+                elements.processingStatus.textContent = 'Applying overlay at 33% opacity...';
+                
+                await ffmpeg.exec([
+                    '-i', 'input.mp4',
+                    '-i', 'overlay.png',
+                    '-filter_complex',
+                    '[1:v]format=rgba,colorchannelmixer=aa=0.33[overlay];[0:v][overlay]overlay=0:0',
+                    '-c:a', 'copy',
+                    '-preset', 'fast',
+                    'output.mp4'
+                ]);
+                
+                // Get processed video
+                const data = await ffmpeg.readFile('output.mp4');
+                currentVariantBlob = new Blob([data.buffer], { type: 'video/mp4' });
+                
+                // Clean up
+                await ffmpeg.deleteFile('input.mp4');
+                await ffmpeg.deleteFile('overlay.png');
+                await ffmpeg.deleteFile('output.mp4');
+                
+                // Update UI
+                variantCount++;
+                elements.displayVideo.src = URL.createObjectURL(currentVariantBlob);
+                elements.videoLabel.textContent = `Variant #${variantCount}`;
+                elements.videoLabel.classList.add('variant-label');
+                
+                // Show variant info
+                elements.variantInfo.classList.add('active');
+                elements.patternsUsed.innerHTML = currentPatterns.map(p => 
+                    `<span class="pattern-tag">${p}</span>`
+                ).join('');
+                
+                elements.saveBtn.style.display = 'block';
+                elements.processingOverlay.classList.remove('active');
+                
+                showStatus(`Variant #${variantCount} generated successfully!`, 'success');
+                
+                // Show save instructions based on device
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                const isAndroid = /Android/.test(navigator.userAgent);
+                
+                if (isIOS) {
+                    elements.saveInstructionsText.textContent = 'Tap "Save to Camera Roll" or long-press the video and select "Save Video"';
+                    elements.saveInstructions.classList.add('active');
+                } else if (isAndroid) {
+                    elements.saveInstructionsText.textContent = 'Tap "Save to Camera Roll" to download to your gallery';
+                    elements.saveInstructions.classList.add('active');
+                }
+                
+            } catch (error) {
+                console.error('Processing error:', error);
+                showStatus('Error processing video. Try a smaller file.', 'error');
+                elements.processingOverlay.classList.remove('active');
+            } finally {
+                isProcessing = false;
+                elements.generateBtn.disabled = false;
+                elements.progressFill.style.width = '0%';
+            }
+        });
+
+        // Save to camera roll
+        elements.saveBtn.addEventListener('click', async () => {
+            if (!currentVariantBlob) return;
+            
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            const isAndroid = /Android/.test(navigator.userAgent);
+            
+            try {
+                // Try Web Share API first (works best on mobile)
+                if (navigator.canShare) {
+                    const file = new File([currentVariantBlob], `tiktok_variant_${variantCount}.mp4`, { type: 'video/mp4' });
+                    
+                    if (await navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            files: [file],
+                            title: `TikTok Variant #${variantCount}`
+                        });
+                        showStatus('Saved successfully!', 'success');
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.log('Share API not available, using fallback');
+            }
+            
+            // Fallback download
+            const url = URL.createObjectURL(currentVariantBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `tiktok_variant_${variantCount}.mp4`;
+            
+            if (isIOS) {
+                // For iOS, also try opening in new tab
+                window.open(url, '_blank');
+                showStatus('Opening video - long press to save', 'info');
+            } else {
+                a.click();
+                showStatus('Downloading...', 'success');
+            }
+            
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        });
+
+        // Reset
+        elements.resetBtn.addEventListener('click', () => {
+            videoFile = null;
+            currentVariantBlob = null;
+            variantCount = 0;
+            
+            elements.displayVideo.src = '';
+            elements.uploadArea.classList.remove('has-video');
+            elements.uploadLabel.innerHTML = `
+                <div class="upload-icon">📹</div>
+                <div class="upload-text">Upload Video</div>
+                <div class="upload-subtext">Drag & drop or click to browse</div>
+            `;
+            
+            elements.videoPreview.classList.remove('active');
+            elements.actions.classList.remove('active');
+            elements.variantInfo.classList.remove('active');
+            elements.saveInstructions.classList.remove('active');
+            elements.statusMessage.classList.remove('active');
+            elements.videoInput.value = '';
+            elements.saveBtn.style.display = 'none';
+            elements.videoLabel.textContent = 'Original';
+            elements.videoLabel.classList.remove('variant-label');
+        });
+
+        // Show status message
+        function showStatus(message, type) {
+            elements.statusMessage.textContent = message;
+            elements.statusMessage.className = `status-message active ${type}`;
+            
+            setTimeout(() => {
+                elements.statusMessage.classList.remove('active');
+            }, 3000);
+        }
+
+        // Drag and drop
+        elements.uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            if (!elements.uploadArea.classList.contains('has-video')) {
+                elements.uploadArea.style.borderColor = '#ff0050';
+            }
+        });
+
+        elements.uploadArea.addEventListener('dragleave', () => {
+            if (!elements.uploadArea.classList.contains('has-video')) {
+                elements.uploadArea.style.borderColor = '#333';
+            }
+        });
+
+        elements.uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (!elements.uploadArea.classList.contains('has-video')) {
+                elements.uploadArea.style.borderColor = '#333';
+                const file = e.dataTransfer.files[0];
+                if (file && file.type.startsWith('video/')) {
+                    elements.videoInput.files = e.dataTransfer.files;
+                    elements.videoInput.dispatchEvent(new Event('change'));
+                }
+            }
+        });
+
+        // Keep-alive
+        setInterval(() => {
+            console.log('Keep-alive');
+        }, 60000);
+    </script>
+</body>
+</html>
